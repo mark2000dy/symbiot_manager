@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gastos - Sistema de Gastos Symbiot</title>
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#191C24">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #000 0%, #191C24 50%, #000 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+        
+        .navbar {
+            background: rgba(25, 28, 36, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .navbar-brand {
+            color: #EB1616 !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.8) !important;
+            transition: color 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: #EB1616 !important;
+        }
+        
+        .main-content {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            background: rgba(25, 28, 36, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+        }
+        
+        .card-header {
+            background: rgba(235, 22, 22, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-control, .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #EB1616;
+            box-shadow: 0 0 0 0.2rem rgba(235, 22, 22, 0.25);
+            color: white;
+        }
+        
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .form-select option {
+            background: #191C24;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #EB1616, #ff4757);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #d10000, #EB1616);
+            transform: translateY(-2px);
+        }
+        
+        .table-dark {
+            background: rgba(25, 28, 36, 0.6);
+        }
+        
+        .table-dark th {
+            border-color: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+            color: #E4E6EA;
+        }
+        
+        .table-dark td {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .badge-ingreso {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+        
+        .badge-gasto {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .welcome-banner {
+            background: rgba(235, 22, 22, 0.1);
+            border: 1px solid rgba(235, 22, 22, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .welcome-banner h4 {
+            color: #FFFFFF !important;
+            font-weight: 600;
+        }
+
+        .welcome-banner p {
+            color: #E4E6EA !important;
+        }
+
+        .form-label {
+            color: #E4E6EA !important;
+            font-weight: 500;
+        }
+
+        .card-header h5 {
+            color: #FFFFFF !important;
+        }
+
+        .alert-info {
+            background-color: rgba(13, 202, 240, 0.15) !important;
+            border-color: rgba(13, 202, 240, 0.4) !important;
+            color: #0dcaf0 !important;
+        }
+
+        .alert-info strong {
+            color: #FFFFFF !important;
+        }
+
+        /* Mejorar visibilidad de textos */
+        .text-muted, .small {
+            color: #E4E6EA !important; /* Cambio de gris a casi blanco */
+        }
+
+        .card-body small {
+            color: #E4E6EA !important;
+        }
+
+        /* Estilos específicos para gráfica */
+        #chartLoading {
+            color: #FFFFFF !important;
+        }
+
+        #chartLoading p {
+            color: #E4E6EA !important;
+        }
+
+        .chart-summary h6 {
+            font-weight: bold;
+        }
+
+        .chart-summary small {
+            color: #E4E6EA !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/gastos">
+                <img src="assets/images/Symbiot_logo_dark_horizon.png" alt="SYMBIOT Logo" style="height: 30px; margin-right: 8px;">
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="gastos.html">
+                            <i class="fas fa-money-bill-wave me-1"></i>Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="event.preventDefault(); showComingSoon('Ingresos');">
+                            <i class="fas fa-coins me-1"></i>Ingresos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="event.preventDefault(); showComingSoon('Reportes');">
+                            <i class="fas fa-chart-bar me-1"></i>Reportes
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i>
+                            <span id="userName">Usuario</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Perfil</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); logout();"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid main-content">
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <h4 class="mb-1"><i class="fas fa-money-bill-wave me-2"></i>Análisis de Gastos</h4>
+            <p class="mb-0 text-muted">
+                ¡Bienvenido, <span id="userNameDisplay">Usuario</span>! • 
+                Gestiona y analiza todos los gastos de tus empresas con filtros avanzados y reportes detallados
+            </p>
+        </div>
+
+        <!-- Widget Gráfica de Gastos Interactivo -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="text-white mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>📊 Análisis de Gastos por Período
+                </h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-light" id="chartViewYear" onclick="setChartView('year')">📅 Anual</button>
+                    <button type="button" class="btn btn-outline-light active" id="chartViewMonth" onclick="setChartView('month')">📆 Mensual</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Loading de gráfica -->
+                <div class="text-center py-4" id="chartLoading">
+                    <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                    <p class="mt-2 text-white">Cargando datos de gráfica...</p>
+                </div>
+                
+                <!-- Canvas para Chart.js -->
+                <div id="chartContainer" style="display: none; position: relative; height: 400px;">
+                    <canvas id="gastosChart"></canvas>
+                </div>
+                
+                <!-- Error state -->
+                <div class="text-center py-4" id="chartError" style="display: none;">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                    <p class="mt-2 text-white">Error cargando gráfica</p>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadGastosChart()">🔄 Reintentar</button>
+                </div>
+                
+                <!-- Resumen de datos -->
+                <div class="row mt-3 chart-summary" id="chartSummary" style="display: none;">
+                    <div class="col-6 col-md-3 text-center">
+                        <h6 class="text-primary mb-1" id="totalGastosChart">$0</h6>
+                        <small class="text-white">💸 Total Gastos</small>
+                    </div>
+                    <div class="col-6 col-md-3 text-center">
+                        <h6 class="text-info mb-1" id="promedioGastosChart">$0</h6>
+                        <small class="text-white">📊 Promedio</small>
+                    </div>
+                    <div class="col-6 col-md-3 text-center">
+                        <h6 class="text-success mb-1" id="transaccionesChart">0</h6>
+                        <small class="text-white">📋 Transacciones</small>
+                    </div>
+                    <div class="col-6 col-md-3 text-center">
+                        <h6 class="text-warning mb-1" id="periodoChart">-</h6>
+                        <small class="text-white">📅 Período</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget Estadísticas por Empresa -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="fas fa-guitar fa-3x text-warning me-3"></i>
+                            <div>
+                                <h3 class="text-warning mb-1" id="gastosRockstar">$0</h3>
+                                <h6 class="text-white mb-0">🎸 Gastos RockstarSkull</h6>
+                                <small class="text-white">(<span id="countRockstar">0</span> transacciones)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="fas fa-microscope fa-3x text-info me-3"></i>
+                            <div>
+                                <h3 class="text-info mb-1" id="gastosSymbiot">$0</h3>
+                                <h6 class="text-white mb-0">🔬 Gastos Symbiot</h6>
+                                <small class="text-white">(<span id="countSymbiot">0</span> transacciones)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros Básicos -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="text-white mb-0">
+                    <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Filtro de Empresa -->
+                    <div class="col-md-3">
+                        <label for="filterEmpresa" class="form-label">
+                            <i class="fas fa-building me-1"></i>Empresa
+                        </label>
+                        <select class="form-select" id="filterEmpresa" onchange="applyFilters()">
+                            <option value="">🏢 Todas las Empresas</option>
+                            <option value="1">🎸 RockstarSkull Academia</option>
+                            <option value="2">🔬 Symbiot Technologies</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Filtro de Año -->
+                    <div class="col-md-2">
+                        <label for="filterAno" class="form-label">
+                            <i class="fas fa-calendar-alt me-1"></i>Año
+                        </label>
+                        <select class="form-select" id="filterAno" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Filtro de Mes -->
+                    <div class="col-md-2">
+                        <label for="filterMes" class="form-label">
+                            <i class="fas fa-calendar-day me-1"></i>Mes
+                        </label>
+                        <select class="form-select" id="filterMes" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Filtro de Tipo -->
+                    <div class="col-md-2">
+                        <label for="filterTipo" class="form-label">
+                            <i class="fas fa-tag me-1"></i>Tipo
+                        </label>
+                        <select class="form-select" id="filterTipo" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="G">💸 Gastos</option>
+                            <option value="I" disabled>💰 Ingresos (Solo en sección Ingresos)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Botones de Acción -->
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                                <i class="fas fa-eraser me-1"></i>Limpiar
+                            </button>
+                            <button class="btn btn-primary" onclick="exportData()">
+                                <i class="fas fa-download me-1"></i>Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Resumen de Filtros -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info d-flex justify-content-between align-items-center py-2 mb-0">
+                            <div>
+                                <strong>Filtros aplicados:</strong>
+                                <span id="filterSummary">Mostrando 💸 gastos</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-primary fs-6" id="totalRegistros">0</span> registros
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Gastos -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="text-white mb-0">
+                    <i class="fas fa-table me-2"></i>Lista de Transacciones
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="refreshTransactions()">
+                        <i class="fas fa-sync-alt me-1"></i>Actualizar
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="showAddModal()">
+                        <i class="fas fa-plus me-1"></i>Nuevo Gasto
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Loading State -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                    <p class="mt-2">Cargando transacciones...</p>
+                </div>
+
+                <!-- Tabla -->
+                <div class="table-responsive" id="tableContainer" style="display: none;">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-calendar-alt me-1"></i>Fecha</th>
+                                <th><i class="fas fa-receipt me-1"></i>Concepto</th>
+                                <th><i class="fas fa-user me-1"></i>Socio</th>
+                                <th><i class="fas fa-building me-1"></i>Empresa</th>
+                                <th><i class="fas fa-credit-card me-1"></i>Forma de Pago</th>
+                                <th><i class="fas fa-tag me-1"></i>Tipo</th>
+                                <th class="text-end"><i class="fas fa-dollar-sign me-1"></i>Total</th>
+                                <th class="text-center"><i class="fas fa-cogs me-1"></i>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Se llenará dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <nav aria-label="Paginación de gastos" class="mt-3" id="paginationNav" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white">
+                                Mostrando <span id="showingFrom">1</span> - <span id="showingTo">30</span> 
+                                de <span id="totalRecords">0</span> registros
+                            </small>
+                        </div>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" id="prevPage">
+                                <a class="page-link" href="#" onclick="changePage('prev')" style="background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">
+                                    <i class="fas fa-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link" id="currentPageSpan" style="background: #EB1616; border-color: #EB1616;">1</span>
+                            </li>
+                            <li class="page-item" id="nextPage">
+                                <a class="page-link" href="#" onclick="changePage('next')" style="background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">
+                                    Siguiente <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- Empty State -->
+                <div class="text-center py-5" id="emptyState" style="display: none;">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5>No se encontraron transacciones</h5>
+                    <p class="text-muted">Intenta ajustar los filtros o agregar nuevas transacciones.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Transacción -->
+        <div class="modal fade" id="transactionModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" style="background: rgba(25, 28, 36, 0.95); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-white">
+                            <i class="fas fa-plus me-2"></i>
+                            <span id="modalTitle">Nueva Transacción</span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="transactionForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="transactionDate" class="form-label">
+                                        <i class="fas fa-calendar-alt me-1"></i>Fecha
+                                    </label>
+                                    <input type="date" class="form-control" id="transactionDate" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="transactionType" class="form-label">
+                                        <i class="fas fa-tag me-1"></i>Tipo
+                                    </label>
+                                    <select class="form-select" id="transactionType" required>
+                                        <option value="G" selected>💸 Gasto</option>
+                                        <option value="I">💰 Ingreso</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="transactionCompany" class="form-label">
+                                        <i class="fas fa-building me-1"></i>Empresa
+                                    </label>
+                                    <select class="form-select" id="transactionCompany" required>
+                                        <option value="">Selecciona empresa</option>
+                                        <option value="1">🎸 RockstarSkull Academia</option>
+                                        <option value="2">🔬 Symbiot Technologies</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="transactionSocio" class="form-label">
+                                        <i class="fas fa-user me-1"></i>Socio
+                                    </label>
+                                    <select class="form-select" id="transactionSocio" required>
+                                        <option value="">Selecciona socio</option>
+                                        <option value="Marco Delgado">Marco Delgado</option>
+                                        <option value="Antonio Razo">Antonio Razo</option>
+                                        <option value="Hugo Vázquez">Hugo Vázquez</option>
+                                        <option value="Escuela">Escuela</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="transactionConcept" class="form-label">
+                                    <i class="fas fa-receipt me-1"></i>Concepto
+                                </label>
+                                <input type="text" class="form-control" id="transactionConcept" 
+                                       placeholder="Describe el concepto del gasto..." required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="transactionQuantity" class="form-label">
+                                        <i class="fas fa-hashtag me-1"></i>Cantidad
+                                    </label>
+                                    <input type="number" class="form-control" id="transactionQuantity" 
+                                           value="1" min="0.01" step="0.01" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="transactionPrice" class="form-label">
+                                        <i class="fas fa-dollar-sign me-1"></i>Precio Unitario
+                                    </label>
+                                    <input type="number" class="form-control" id="transactionPrice" 
+                                           min="0.01" step="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="transactionTotal" class="form-label">
+                                        <i class="fas fa-calculator me-1"></i>Total
+                                    </label>
+                                    <input type="text" class="form-control" id="transactionTotal" 
+                                           placeholder="$0.00" readonly style="background-color: rgba(255,255,255,0.05);">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="transactionPayment" class="form-label">
+                                    <i class="fas fa-credit-card me-1"></i>Forma de Pago
+                                </label>
+                                <select class="form-select" id="transactionPayment" required>
+                                    <option value="">Selecciona forma de pago</option>
+                                    <option value="Efectivo">💵 Efectivo</option>
+                                    <option value="TDC">💳 Tarjeta de Crédito</option>
+                                    <option value="Transferencia">🏦 Transferencia</option>
+                                    <option value="TPV">📱 Terminal TPV</option>
+                                    <option value="Cheque">📝 Cheque</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" id="deleteTransactionBtn" style="display: none;">
+                            <i class="fas fa-trash me-1"></i>Eliminar
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="saveTransaction()">
+                            <i class="fas fa-save me-1"></i>Guardar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let currentUser = null;
+        let transactionsData = [];
+        let currentPage = 1;
+        const recordsPerPage = 20;
+        let totalTransactions = 0;
+
+        // Variables de gráfica
+        let gastosChart = null;
+        let currentChartView = 'month'; // 'year' o 'month'
+        let currentChartData = null;
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Iniciando módulo de gastos...');
+            
+            try {
+                await loadCurrentUser();
+                setDefaultGastosFilter(); // Establecer filtro por defecto para gastos
+                // Cargar gráfica después de aplicar filtros
+                setTimeout(() => loadGastosChart(), 1000);
+                
+                // ✅ NUEVO: Configurar botón eliminar del modal
+                const deleteBtn = document.getElementById('deleteTransactionBtn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', function() {
+                        if (editingTransactionId) {
+                            // Cerrar modal primero
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('transactionModal'));
+                            modal.hide();
+                            // Llamar función eliminar después de cerrar modal
+                            setTimeout(() => deleteTransaction(editingTransactionId), 300);
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                console.error('❌ Error de autenticación:', error);
+                console.log('🔓 Redirigiendo al login...');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
+        });
+
+        // Cargar usuario actual
+        async function loadCurrentUser() {
+            try {
+                const response = await fetch('/gastos/api/user');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('userName').textContent = currentUser.nombre;
+                    console.log('👤 Usuario cargado:', currentUser.nombre);
+                    
+                    // También actualizar el display name en el banner si existe
+                    const userDisplay = document.getElementById('userNameDisplay');
+                    if (userDisplay) {
+                        userDisplay.textContent = currentUser.nombre;
+                    }
+                } else {
+                    throw new Error('No hay sesión activa');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cargando usuario:', error);
+                throw error; // Re-throw para que lo capture el DOMContentLoaded
+            }
+        }
+
+        // Cargar transacciones
+        async function loadTransactions() {
+            try {
+                console.log('📊 Cargando transacciones...');
+                showLoading(true);
+                
+                // Construir parámetros de filtro
+                const params = new URLSearchParams();
+                
+                const empresa = document.getElementById('filterEmpresa').value;
+                const ano = document.getElementById('filterAno').value;
+                const mes = document.getElementById('filterMes').value;
+                const tipo = document.getElementById('filterTipo').value;
+                
+                if (empresa) params.append('empresa_id', empresa);
+                if (tipo) params.append('tipo', tipo);
+                
+                // Construir rango de fechas
+                if (ano) {
+                    const fechaInicio = mes ? `${ano}-${mes}-01` : `${ano}-01-01`;
+                    const fechaFin = mes ? `${ano}-${mes}-31` : `${ano}-12-31`;
+                    params.append('fechaInicio', fechaInicio);
+                    params.append('fechaFin', fechaFin);
+                }
+                
+                const response = await fetch(`/gastos/api/transacciones?${params.toString()}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    transactionsData = data.data || [];
+                    renderTable();
+                    updateFilterSummary();
+                    console.log(`✅ ${transactionsData.length} transacciones cargadas`);
+                } else {
+                    console.warn('⚠️ No se pudieron cargar las transacciones');
+                    showEmptyState();
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cargando transacciones:', error);
+                showEmptyState();
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Renderizar tabla con paginación
+        function renderTable() {
+            totalTransactions = transactionsData.length;
+            
+            if (totalTransactions === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            // Actualizar stats por empresa
+            updateCompanyStats();
+            
+            // Renderizar página actual
+            renderCurrentPage();
+            updatePaginationControls();
+        }
+            /*
+            const tableBody = document.getElementById('tableBody');
+            
+            if (transactionsData.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            const html = transactionsData.map(transaction => `
+                <tr>
+                    <td>${formatDate(transaction.fecha)}</td>
+                    <td class="text-truncate" style="max-width: 200px;" title="${transaction.concepto}">
+                        ${transaction.concepto}
+                    </td>
+                    <td>${transaction.socio}</td>
+                    <td>
+                        <span class="badge ${transaction.empresa_id == 1 ? 'bg-warning' : 'bg-info'}">
+                            ${transaction.empresa_id == 1 ? '🎸 RockstarSkull' : '🔬 Symbiot'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">${transaction.forma_pago}</span>
+                    </td>
+                    <td>
+                        <span class="badge ${transaction.tipo === 'G' ? 'badge-gasto' : 'badge-ingreso'}">
+                            ${transaction.tipo === 'G' ? '💸 Gasto' : '💰 Ingreso'}
+                        </span>
+                    </td>
+                    <td class="text-end fw-bold">
+                        ${formatCurrency(transaction.total)}
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="editTransaction(${transaction.id})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteTransaction(${transaction.id})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            
+            tableBody.innerHTML = html;
+            
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        }*/
+
+        // Mostrar/ocultar loading
+        function showLoading(show) {
+            document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+            document.getElementById('tableContainer').style.display = show ? 'none' : 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        // Mostrar estado vacío
+        function showEmptyState() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            console.log('🔍 Aplicando filtros...');
+            loadTransactions();
+            loadGastosChart(); // ← Actualizar gráfica también
+        }
+
+        // Limpiar filtros
+        function clearFilters() {
+            document.getElementById('filterEmpresa').value = '';
+            document.getElementById('filterAno').value = '';
+            document.getElementById('filterMes').value = '';
+            document.getElementById('filterTipo').value = '';
+            applyFilters();
+        }
+
+        // Establecer filtros por defecto para mostrar solo gastos
+        function setDefaultGastosFilter() {
+            document.getElementById('filterEmpresa').value = '';
+            document.getElementById('filterAno').value = '';
+            document.getElementById('filterMes').value = '';
+            document.getElementById('filterTipo').value = 'G'; // Solo gastos por defecto
+            applyFilters();
+        }
+
+        // Actualizar resumen de filtros
+        function updateFilterSummary() {
+            const empresa = document.getElementById('filterEmpresa').value;
+            const ano = document.getElementById('filterAno').value;
+            const mes = document.getElementById('filterMes').value;
+            const tipo = document.getElementById('filterTipo').value;
+            
+            let summary = 'Mostrando ';
+
+            if (tipo === 'G') summary += '💸 gastos';
+            else if (tipo === 'I') summary += '💰 ingresos';
+            else summary += 'transacciones';
+            
+            if (empresa === '1') summary += ' de RockstarSkull';
+            else if (empresa === '2') summary += ' de Symbiot Technologies';
+            
+            if (ano) {
+                summary += ` del año ${ano}`;
+                if (mes) {
+                    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    summary += ` - ${meses[parseInt(mes) - 1]}`;
+                }
+            }
+            
+            document.getElementById('filterSummary').textContent = summary;
+            document.getElementById('totalRegistros').textContent = transactionsData.length;
+        }
+
+        // Actualizar estadísticas por empresa con datos de toda la base
+        async function updateCompanyStats() {
+            try {
+                // Obtener totales de gastos de toda la base de datos (sin filtros)
+                const [rockstarResponse, symbiotResponse] = await Promise.all([
+                    fetch('/gastos/api/transacciones?empresa_id=1'),
+                    fetch('/gastos/api/transacciones?empresa_id=2')
+                ]);
+                
+                const rockstarData = await rockstarResponse.json();
+                const symbiotData = await symbiotResponse.json();
+                
+                if (rockstarData.success && symbiotData.success) {
+                    const rockstarTransacciones = rockstarData.data || [];
+                    const symbiotTransacciones = symbiotData.data || [];
+                    
+                    // Calcular totales de gastos (solo tipo 'G')
+                    const rockstarGastos = rockstarTransacciones
+                        .filter(t => t.tipo === 'G')
+                        .reduce((sum, t) => sum + parseFloat(t.total), 0);
+                    
+                    const symbiotGastos = symbiotTransacciones
+                        .filter(t => t.tipo === 'G')
+                        .reduce((sum, t) => sum + parseFloat(t.total), 0);
+                    
+                    // Contar solo gastos
+                    const rockstarGastosCount = rockstarTransacciones.filter(t => t.tipo === 'G').length;
+                    const symbiotGastosCount = symbiotTransacciones.filter(t => t.tipo === 'G').length;
+                    
+                    // Actualizar elementos en la página
+                    document.getElementById('gastosRockstar').textContent = formatCurrency(rockstarGastos);
+                    document.getElementById('gastosSymbiot').textContent = formatCurrency(symbiotGastos);
+                    document.getElementById('countRockstar').textContent = rockstarGastosCount;
+                    document.getElementById('countSymbiot').textContent = symbiotGastosCount;
+                    
+                    console.log(`📊 Stats actualizadas: RockstarSkull ${rockstarGastosCount} gastos (${formatCurrency(rockstarGastos)}), Symbiot ${symbiotGastosCount} gastos (${formatCurrency(symbiotGastos)})`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error actualizando stats por empresa:', error);
+                // Mantener el comportamiento anterior si falla la API
+                const rockstarGastos = transactionsData
+                    .filter(t => t.empresa_id == 1 && t.tipo === 'G')
+                    .reduce((sum, t) => sum + parseFloat(t.total), 0);
+                
+                const symbiotGastos = transactionsData
+                    .filter(t => t.empresa_id == 2 && t.tipo === 'G')
+                    .reduce((sum, t) => sum + parseFloat(t.total), 0);
+                    
+                const rockstarCount = transactionsData.filter(t => t.empresa_id == 1 && t.tipo === 'G').length;
+                const symbiotCount = transactionsData.filter(t => t.empresa_id == 2 && t.tipo === 'G').length;
+                
+                document.getElementById('gastosRockstar').textContent = formatCurrency(rockstarGastos);
+                document.getElementById('gastosSymbiot').textContent = formatCurrency(symbiotGastos);
+                document.getElementById('countRockstar').textContent = rockstarCount;
+                document.getElementById('countSymbiot').textContent = symbiotCount;
+            }
+        }
+
+        // Función de refrescar transacciones
+        function refreshTransactions() {
+            console.log('🔄 Actualizando lista de transacciones...');
+            loadTransactions();
+        }
+
+        // Funciones de paginación
+        function changePage(direction) {
+            if (direction === 'next' && currentPage * recordsPerPage < totalTransactions) {
+                currentPage++;
+            } else if (direction === 'prev' && currentPage > 1) {
+                currentPage--;
+            }
+            renderCurrentPage();
+            updatePaginationControls();
+        }
+
+        function renderCurrentPage() {
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = startIndex + recordsPerPage;
+            const pageData = transactionsData.slice(startIndex, endIndex);
+            
+            // Usar la función existente renderTable pero con datos paginados
+            const tableBody = document.getElementById('tableBody');
+            
+            if (pageData.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            const html = pageData.map(transaction => `
+                <tr>
+                    <td>${formatDate(transaction.fecha)}</td>
+                    <td class="text-truncate" style="max-width: 200px;" title="${transaction.concepto}">
+                        ${transaction.concepto}
+                    </td>
+                    <td>${transaction.socio}</td>
+                    <td>
+                        <span class="badge ${transaction.empresa_id == 1 ? 'bg-warning' : 'bg-info'}">
+                            ${transaction.empresa_id == 1 ? '🎸 RockstarSkull' : '🔬 Symbiot'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">${transaction.forma_pago}</span>
+                    </td>
+                    <td>
+                        <span class="badge badge-gasto">💸 Gasto</span>
+                    </td>
+                    <td class="text-end fw-bold">
+                        ${formatCurrency(transaction.total)}
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="editTransaction(${transaction.id})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteTransaction(${transaction.id})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            
+            tableBody.innerHTML = html;
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(totalTransactions / recordsPerPage);
+            const showingFrom = (currentPage - 1) * recordsPerPage + 1;
+            const showingTo = Math.min(currentPage * recordsPerPage, totalTransactions);
+            
+            document.getElementById('showingFrom').textContent = showingFrom;
+            document.getElementById('showingTo').textContent = showingTo;
+            document.getElementById('totalRecords').textContent = totalTransactions;
+            document.getElementById('currentPageSpan').textContent = currentPage;
+            
+            // Habilitar/deshabilitar botones
+            document.getElementById('prevPage').classList.toggle('disabled', currentPage === 1);
+            document.getElementById('nextPage').classList.toggle('disabled', currentPage === totalPages);
+            
+            // Mostrar paginación si hay más de 30 registros
+            document.getElementById('paginationNav').style.display = totalTransactions > recordsPerPage ? 'block' : 'none';
+        }
+
+        // Función básica de exportar (mejoraremos después)
+        // Función mejorada de exportar
+        async function exportData() {
+            console.log('📥 Iniciando exportación completa de datos...');
+            
+            try {
+                // Mostrar indicador de carga
+                const exportBtn = document.querySelector('[onclick="exportData()"]');
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
+                exportBtn.disabled = true;
+                
+                // Obtener todos los datos (sin filtros para exportación completa)
+                const response = await fetch('/gastos/api/transacciones');
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error('Error obteniendo datos para exportar');
+                }
+                
+                const allData = result.data || [];
+                
+                // Headers del CSV con más detalles
+                const headers = [
+                    'ID',
+                    'Fecha', 
+                    'Tipo',
+                    'Empresa', 
+                    'Socio/Usuario',
+                    'Concepto',
+                    'Cantidad',
+                    'Precio Unitario',
+                    'Forma de Pago',
+                    'Total',
+                    'Fecha Creación'
+                ];
+                
+                // Mapear datos para CSV
+                const csvData = allData.map(t => [
+                    t.id,
+                    formatDate(t.fecha),
+                    t.tipo === 'I' ? 'Ingreso' : 'Gasto',
+                    t.empresa_id == 1 ? 'RockstarSkull' : 'Symbiot Technologies',
+                    t.socio,
+                    `"${t.concepto.replace(/"/g, '""')}"`, // Escapar comillas dobles
+                    t.cantidad,
+                    t.precio_unitario,
+                    t.forma_pago,
+                    t.total,
+                    formatDate(t.created_at)
+                ]);
+                
+                // Crear contenido CSV con encoding UTF-8
+                const csvContent = [headers, ...csvData].map(row => row.join(',')).join('\n');
+                const BOM = '\uFEFF'; // BOM para UTF-8
+                
+                // Crear y descargar archivo
+                const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `symbiot_transacciones_${timestamp}.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                // Mostrar mensaje de éxito
+                showAlert('success', `✅ Archivo ${filename} exportado exitosamente (${allData.length} registros)`);
+                
+                console.log(`✅ Exportación completada: ${allData.length} registros`);
+                
+            } catch (error) {
+                console.error('❌ Error en exportación:', error);
+                showAlert('error', `❌ Error exportando datos: ${error.message}`);
+            } finally {
+                // Restaurar botón
+                const exportBtn = document.querySelector('[onclick="exportData()"]');
+                if (exportBtn) {
+                    exportBtn.innerHTML = originalText;
+                    exportBtn.disabled = false;
+                }
+            }
+        }
+
+        // ============================================================
+        // FUNCIONES DE GRÁFICA INTERACTIVA
+        // ============================================================
+
+        // Cargar y renderizar gráfica de gastos
+        async function loadGastosChart() {
+            try {
+                showChartLoading(true);
+                
+                // Construir parámetros basados en filtros actuales
+                const params = new URLSearchParams();
+                
+                const empresa = document.getElementById('filterEmpresa').value;
+                const ano = document.getElementById('filterAno').value;
+                
+                if (empresa) params.append('empresa_id', empresa);
+                if (ano) params.append('año', ano);
+                
+                console.log('📊 Cargando datos de gráfica con filtros:', params.toString());
+                
+                const response = await fetch(`/gastos/api/gastos/grafica?${params.toString()}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentChartData = data.data;
+                    renderGastosChart(data.data);
+                    updateChartSummary(data.data);
+                    console.log('✅ Gráfica cargada exitosamente');
+                } else {
+                    throw new Error('No se pudieron cargar los datos de gráfica');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cargando gráfica:', error);
+                showChartError();
+            } finally {
+                showChartLoading(false);
+            }
+        }
+
+        // Renderizar gráfica con Chart.js
+        function renderGastosChart(data) {
+            const ctx = document.getElementById('gastosChart').getContext('2d');
+            
+            // Destruir gráfica anterior si existe
+            if (gastosChart) {
+                gastosChart.destroy();
+            }
+            
+            // Preparar datos según vista actual
+            let labels, datasets, chartData;
+            
+            if (currentChartView === 'month') {
+                // Vista mensual
+                labels = data.gastos_por_mes.map(item => {
+                    const fecha = new Date(item.periodo + '-01');
+                    return fecha.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+                });
+                
+                chartData = data.gastos_por_mes.map(item => parseFloat(item.total_gastos));
+                
+                datasets = [{
+                    label: 'Gastos Mensuales',
+                    data: chartData,
+                    backgroundColor: 'rgba(235, 22, 22, 0.6)',
+                    borderColor: 'rgba(235, 22, 22, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }];
+            } else {
+                // Vista anual (implementar si necesario)
+                labels = ['2023', '2024', '2025'];
+                chartData = [50000, 75000, 25000]; // Datos simulados
+                
+                datasets = [{
+                    label: 'Gastos Anuales',
+                    data: chartData,
+                    backgroundColor: 'rgba(235, 22, 22, 0.6)',
+                    borderColor: 'rgba(235, 22, 22, 1)',
+                    borderWidth: 2,
+                }];
+            }
+            
+            // Configuración de Chart.js
+            gastosChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: currentChartView === 'month' ? 'Gastos por Mes' : 'Gastos por Año',
+                            color: '#E4E6EA',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'bottom', // ← Posición horizontal abajo
+                            align: 'center',
+                            labels: {
+                                usePointStyle: true,
+                                color: '#ffffff',
+                                padding: 15,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(25, 28, 36, 0.95)',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#E4E6EA',
+                            borderColor: 'rgba(235, 22, 22, 0.5)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return `💸 ${formatCurrency(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#E4E6EA',
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#E4E6EA'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            handleChartClick(elements[0].index);
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuad'
+                    }
+                }
+            });
+            
+            // Mostrar contenedor
+            document.getElementById('chartContainer').style.display = 'block';
+            document.getElementById('chartSummary').style.display = 'block';
+        }
+
+        // Manejar click en gráfica (drill-down)
+        async function handleChartClick(index) {
+            if (!currentChartData || !currentChartData.gastos_por_mes[index]) return;
+            
+            const selectedData = currentChartData.gastos_por_mes[index];
+            console.log('🔍 Drill-down en período:', selectedData.periodo);
+            
+            try {
+                // Construir parámetros para drill-down
+                const params = new URLSearchParams();
+                const empresa = document.getElementById('filterEmpresa').value;
+                
+                if (empresa) params.append('empresa_id', empresa);
+                params.append('año', selectedData.año);
+                params.append('mes', selectedData.mes);
+                
+                const response = await fetch(`/gastos/api/gastos/drill-down?${params.toString()}`);
+                const data = await response.json();
+                
+                if (data.success && data.data.gastos) {
+                    showDrillDownDetails(data.data.gastos, selectedData.periodo);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error en drill-down:', error);
+            }
+        }
+
+        // Mostrar detalles de drill-down
+        function showDrillDownDetails(gastos, periodo) {
+            const detalles = gastos.slice(0, 5).map(gasto => 
+                `• ${gasto.concepto}: ${formatCurrency(gasto.total)}`
+            ).join('\n');
+            
+            alert(`📊 Top Gastos de ${periodo}:\n\n${detalles}\n\n(${gastos.length} gastos totales)`);
+        }
+
+        // Cambiar vista de gráfica
+        function setChartView(view) {
+            currentChartView = view;
+            
+            // Actualizar botones
+            document.getElementById('chartViewYear').classList.toggle('active', view === 'year');
+            document.getElementById('chartViewMonth').classList.toggle('active', view === 'month');
+            
+            // Recargar gráfica
+            if (currentChartData) {
+                renderGastosChart(currentChartData);
+            }
+        }
+
+        // Actualizar resumen de gráfica
+        function updateChartSummary(data) {
+            const totales = data.totales;
+            
+            document.getElementById('totalGastosChart').textContent = formatCurrency(totales.total_gastos || 0);
+            document.getElementById('promedioGastosChart').textContent = formatCurrency(totales.promedio_gasto || 0);
+            document.getElementById('transaccionesChart').textContent = totales.total_transacciones || 0;
+            document.getElementById('periodoChart').textContent = data.periodo_consultado || '-';
+        }
+
+        // Mostrar/ocultar loading de gráfica
+        function showChartLoading(show) {
+            document.getElementById('chartLoading').style.display = show ? 'block' : 'none';
+            document.getElementById('chartContainer').style.display = show ? 'none' : 'block';
+            document.getElementById('chartSummary').style.display = show ? 'none' : 'block';
+        }
+
+        // Mostrar error en gráfica
+        function showChartError() {
+            document.getElementById('chartLoading').innerHTML = `
+                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                <p class="mt-2">Error cargando gráfica</p>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadGastosChart()">Reintentar</button>
+            `;
+        }
+
+        // Funciones de utilidad
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric'
+            });
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 2
+            }).format(amount);
+        }
+
+        // Mostrar alertas al usuario
+        function showAlert(type, message) {
+            // Crear el contenedor de alerta si no existe
+            let alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) {
+                alertContainer = document.createElement('div');
+                alertContainer.id = 'alertContainer';
+                alertContainer.className = 'position-fixed top-0 end-0 p-3';
+                alertContainer.style.zIndex = '9999';
+                document.body.appendChild(alertContainer);
+            }
+            
+            // Tipos de alerta
+            const alertTypes = {
+                'success': { class: 'alert-success', icon: 'fa-check-circle' },
+                'error': { class: 'alert-danger', icon: 'fa-exclamation-circle' },
+                'warning': { class: 'alert-warning', icon: 'fa-exclamation-triangle' },
+                'info': { class: 'alert-info', icon: 'fa-info-circle' }
+            };
+            
+            const alertType = alertTypes[type] || alertTypes['info'];
+            
+            // Crear alerta
+            const alertElement = document.createElement('div');
+            alertElement.className = `alert ${alertType.class} alert-dismissible fade show`;
+            alertElement.innerHTML = `
+                <i class="fas ${alertType.icon} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            alertContainer.appendChild(alertElement);
+            
+            // Auto-eliminar después de 5 segundos
+            setTimeout(() => {
+                if (alertElement.parentNode) {
+                    alertElement.remove();
+                }
+            }, 5000);
+        }
+
+        function exportData() {
+            alert('Funcionalidad de exportar - Próximamente implementada');
+        }
+
+        function showComingSoon(feature) {
+            alert(`${feature} - Próximamente disponible`);
+        }
+
+        function logout() {
+            window.location.href = '/gastos/login.html';
+        }
+
+        // Funciones de transacciones
+        let editingTransactionId = null;
+
+        function showAddModal() {
+            editingTransactionId = null;
+            document.getElementById('modalTitle').textContent = 'Nuevo Gasto';
+            document.getElementById('deleteTransactionBtn').style.display = 'none';
+            
+            // Limpiar formulario
+            document.getElementById('transactionForm').reset();
+            
+            // Establecer valores por defecto
+            document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('transactionType').value = 'G'; // Gasto por defecto
+            document.getElementById('transactionQuantity').value = 1;
+            
+            // Configurar listeners de cálculo
+            setupCalculationListeners();
+            
+            const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+            modal.show();
+        }
+
+        function editTransaction(id) {
+            const transaction = transactionsData.find(t => t.id === id);
+            if (!transaction) return;
+            
+            editingTransactionId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Transacción';
+            document.getElementById('deleteTransactionBtn').style.display = 'inline-block';
+            
+            // Llenar formulario con datos existentes
+            document.getElementById('transactionDate').value = transaction.fecha;
+            document.getElementById('transactionType').value = transaction.tipo;
+            document.getElementById('transactionCompany').value = transaction.empresa_id;
+            document.getElementById('transactionSocio').value = transaction.socio;
+            document.getElementById('transactionConcept').value = transaction.concepto;
+            document.getElementById('transactionQuantity').value = transaction.cantidad;
+            document.getElementById('transactionPrice').value = transaction.precio_unitario;
+            document.getElementById('transactionPayment').value = transaction.forma_pago;
+            document.getElementById('transactionTotal').value = formatCurrency(transaction.total);
+            
+            // Configurar listeners de cálculo
+            setupCalculationListeners();
+            
+            const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+            modal.show();
+        }
+
+        async function deleteTransaction(id) {
+            const transaction = transactionsData.find(t => t.id === id);
+            if (!transaction) return;
+            
+            if (confirm(`¿Estás seguro de que deseas eliminar esta transacción?\n\n"${transaction.concepto}" - ${formatCurrency(transaction.total)}\n\nEsta acción no se puede deshacer.`)) {
+                
+                try {
+                    console.log(`🔥 Enviando DELETE para transacción ${id}...`);
+                    
+                    const response = await fetch(`/gastos/api/transacciones/${id}`, {
+                        method: 'DELETE',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    console.log('📥 Respuesta DELETE:', result);
+                    
+                    if (result.success) {
+                        showAlert('success', `✅ Transacción eliminada exitosamente`);
+                        loadTransactions(); // Recargar lista
+                        loadGastosChart(); // Actualizar gráfica
+                    } else {
+                        throw new Error(result.error || 'Error desconocido');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error eliminando transacción:', error);
+                    showAlert('error', `❌ Error: ${error.message}`);
+                }
+            }
+        }
+
+        async function saveTransaction() {
+            const form = document.getElementById('transactionForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const transactionData = {
+                fecha: document.getElementById('transactionDate').value,
+                tipo: document.getElementById('transactionType').value,
+                empresa_id: document.getElementById('transactionCompany').value,
+                socio: document.getElementById('transactionSocio').value,
+                concepto: document.getElementById('transactionConcept').value,
+                cantidad: parseFloat(document.getElementById('transactionQuantity').value),
+                precio_unitario: parseFloat(document.getElementById('transactionPrice').value),
+                forma_pago: document.getElementById('transactionPayment').value
+            };
+            
+            console.log('💾 Guardando transacción:', transactionData);
+            
+            try {
+                const url = editingTransactionId 
+                    ? `/gastos/api/transacciones/${editingTransactionId}`
+                    : '/gastos/api/transacciones';
+                    
+                const method = editingTransactionId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(transactionData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Mostrar mensaje de éxito
+                    const action = editingTransactionId ? 'actualizada' : 'creada';
+                    showAlert('success', `✅ Transacción ${action} exitosamente`);
+                    
+                    // Cerrar modal
+                    bootstrap.Modal.getInstance(document.getElementById('transactionModal')).hide();
+                    
+                    // Recargar datos
+                    loadTransactions();
+                    loadGastosChart(); // Actualizar gráfica también
+                    
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error guardando transacción:', error);
+                showAlert('error', `❌ Error: ${error.message}`);
+            }
+        }
+
+        // Configurar listeners de cálculo automático
+        function setupCalculationListeners() {
+            const quantity = document.getElementById('transactionQuantity');
+            const price = document.getElementById('transactionPrice');
+            const total = document.getElementById('transactionTotal');
+            
+            function updateTotal() {
+                const qty = parseFloat(quantity.value) || 0;
+                const prc = parseFloat(price.value) || 0;
+                const totalAmount = qty * prc;
+                total.value = formatCurrency(totalAmount);
+            }
+            
+            if (quantity && price && total) {
+                quantity.removeEventListener('input', updateTotal); // Evitar duplicados
+                price.removeEventListener('input', updateTotal);
+                
+                quantity.addEventListener('input', updateTotal);
+                price.addEventListener('input', updateTotal);
+            }
+        }
+
+        /* Configurar botón eliminar del modal al cargar página
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('deleteTransactionBtn').addEventListener('click', function() {
+                if (editingTransactionId) {
+                    bootstrap.Modal.getInstance(document.getElementById('transactionModal')).hide();
+                    setTimeout(() => deleteTransaction(editingTransactionId), 300);
+                }
+            });
+        });*/
+    </script>
+</body>
+</html>
